@@ -1,0 +1,16 @@
+{
+  "appName": "coinScan",
+  "version":  "0.0.1",
+  "ethereum": {
+    "node": {
+      "name": "infura",
+      "url": "https://mainnet.infura.io/v3/dd53d44a4ee6405bb1a73229d1490d3b"
+    },
+    "cache": {
+      "timeToUpdate": 3,
+      "numberOfElements": 1000
+    }
+  },
+  "binanceSmartChain": {},
+  "bitcoin": {}
+}
