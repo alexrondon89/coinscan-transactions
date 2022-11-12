@@ -11,6 +11,9 @@ EXPOSE 3000:3000
 
 RUN go build -o /go/bin/coinScan cmd/main.go
 
+ENTRYPOINT ["/go/bin/coinScan"]
+
+
 #FROM --platform=linux/amd64 alpine:latest
 #COPY --from=builder /go/bin/coinScan go/bin/coinScan
 #ENTRYPOINT ["/go/bin/coinScan"]

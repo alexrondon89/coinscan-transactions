@@ -1,2 +1,2 @@
-prueba:
-	pwd
+build:
+	docker build . --no-cache -t "coinscan-image"
