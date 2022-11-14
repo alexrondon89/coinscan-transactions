@@ -3,10 +3,11 @@ package errors
 type Error interface {
 	Error() string
 	StatusCode() int
-	InternalStatusCode() string
+	InternalCode() string
+	Type() ErrorType
 }
 
-func NewError(errorType Error, originalError error) Error {
+func NewError(errorType ErrorType, originalError error) Error {
 	return Err{
 		ErrorType:     errorType,
 		OriginalError: originalError,
@@ -15,17 +16,27 @@ func NewError(errorType Error, originalError error) Error {
 
 type Err struct {
 	OriginalError error
-	ErrorType     Error
+	ErrorType     ErrorType
+}
+
+type ErrorType struct {
+	Message      string `json:"message"`
+	InternalCode string `json:"codeError"`
+	HttpCode     int    `json:"codeHttp"`
 }
 
 func (err Err) Error() string {
-	return err.ErrorType.Error()
+	return err.ErrorType.Message
 }
 
 func (err Err) StatusCode() int {
-	return err.ErrorType.StatusCode()
+	return err.ErrorType.HttpCode
 }
 
-func (err Err) InternalStatusCode() string {
-	return err.ErrorType.InternalStatusCode()
+func (err Err) InternalCode() string {
+	return err.ErrorType.InternalCode
+}
+
+func (err Err) Type() ErrorType {
+	return err.ErrorType
 }

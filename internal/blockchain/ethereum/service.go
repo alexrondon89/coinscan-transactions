@@ -11,7 +11,6 @@ import (
 	"github.com/alexrondon89/coinscan-transactions/cmd/config"
 	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
-	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors/service"
 )
 
 type Service struct {
@@ -30,7 +29,7 @@ func NewService(logger *logrus.Logger, config *config.Config, client blockchain.
 
 	cacheTransactions, err := s.client.LastTransactions(context.Background(), s.config.Ethereum.Cache.NumberOfElements)
 	if err != nil {
-		return Service{}, errors.NewError(service.InitializationError, err)
+		return Service{}, errors.NewError(errors.InitializationError, err)
 	}
 
 	s.cacheTransactions = cacheTransactions

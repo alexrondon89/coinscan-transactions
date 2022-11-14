@@ -27,7 +27,7 @@ func NewEth(logger *logrus.Logger, config *config.Config, ethereumService intern
 func (eh *EthereumHandler) HandlerLastTransactions(c *fiber.Ctx) error {
 	trxList, err := eh.Service.GetLastTransactions(c, eh.config.Ethereum.Cache.NumberOfElements)
 	if err != nil {
-		return c.Status(err.StatusCode()).JSON(err)
+		return c.Status(err.StatusCode()).JSON(err.Type())
 	}
 	return c.Status(http.StatusOK).JSON(trxList)
 }
@@ -36,7 +36,7 @@ func (eh *EthereumHandler) HandlerTransaction(c *fiber.Ctx) error {
 	hash := c.Params("hash")
 	trx, err := eh.Service.GetTransaction(c, hash)
 	if err != nil {
-		return c.Status(err.StatusCode()).JSON(trx)
+		return c.Status(err.StatusCode()).JSON(err.Type())
 	}
 	return c.Status(http.StatusOK).JSON(trx)
 }
