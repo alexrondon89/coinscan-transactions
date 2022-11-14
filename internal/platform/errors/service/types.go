@@ -5,9 +5,9 @@ var (
 )
 
 type ServiceErr struct {
-	Message      string
-	InternalCode string
-	HttpCode     int
+	Message      string `json:"message"`
+	InternalCode string `json:"codeError"`
+	HttpCode     int    `json:"codeHttp"`
 }
 
 func NewServiceErr(message string, internalCode string, httpCode int) ServiceErr {

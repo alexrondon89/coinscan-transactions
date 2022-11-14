@@ -9,9 +9,9 @@ var (
 )
 
 type ClientErr struct {
-	Message      string
-	InternalCode string
-	HttpCode     int
+	Message      string `json:"message"`
+	InternalCode string `json:"codeError"`
+	HttpCode     int    `json:"codeHttp"`
 }
 
 func NewClientErr(message string, internalCode string, httpCode int) ClientErr {
