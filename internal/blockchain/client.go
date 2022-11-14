@@ -1,8 +1,9 @@
 package blockchain
 
 import (
-	"coinScan/internal/platform"
 	"context"
+	"github.com/alexrondon89/coinscan-transactions/internal/platform"
+	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
@@ -12,9 +13,8 @@ import (
 
 type Client interface {
 	Ping()
-	//Connect() *ethclient.Client
-	LastTransactions(context.Context, uint16) ([]Transaction, error)
-	FindTransaction(c context.Context, hash common.Hash) (Transaction, error)
+	LastTransactions(context.Context, uint16) ([]Transaction, errors.Error)
+	FindTransactionProcessed(c context.Context, hash common.Hash) (Transaction, errors.Error)
 }
 
 // Transaction todo add more details to transaction

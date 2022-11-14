@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"coinScan/cmd/config"
-	"coinScan/internal"
+	"github.com/alexrondon89/coinscan-transactions/internal"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
+
+	"github.com/alexrondon89/coinscan-transactions/cmd/config"
 )
 
 type EthereumHandler struct {
@@ -24,9 +25,9 @@ func NewEth(logger *logrus.Logger, config *config.Config, ethereumService intern
 func (eh *EthereumHandler) HandlerLastTransactions(c *fiber.Ctx) error {
 	trxList, err := eh.Service.GetLastTransactions(c, eh.config.Ethereum.Cache.NumberOfElements)
 	if err != nil {
-		return err
+		return c.Status(err.StatusCode()).JSON(trxList)
 	}
-	return c.Status(200).JSON(trxList)
+	return c.Status(err.StatusCode()).JSON(trxList)
 }
 
 func (eh *EthereumHandler) HandlerTransaction(c *fiber.Ctx) error {

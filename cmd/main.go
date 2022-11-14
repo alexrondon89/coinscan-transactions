@@ -1,25 +1,35 @@
 package main
 
 import (
-	"coinScan/cmd/config"
-	"coinScan/cmd/server"
-	"coinScan/cmd/server/handler"
-	"coinScan/internal/blockchain/ethereum"
-	"coinScan/internal/blockchain/ethereum/client/infura"
-	"coinScan/internal/platform"
 	"fmt"
+
+	"github.com/alexrondon89/coinscan-transactions/cmd/config"
+	"github.com/alexrondon89/coinscan-transactions/cmd/server"
+	"github.com/alexrondon89/coinscan-transactions/cmd/server/handler"
+	"github.com/alexrondon89/coinscan-transactions/internal/blockchain/ethereum"
+	"github.com/alexrondon89/coinscan-transactions/internal/blockchain/ethereum/client/infura"
+	"github.com/alexrondon89/coinscan-transactions/internal/platform"
 )
 
 func main() {
 	//configuration
 	log := platform.NewLogrus()
-	configApp := config.Load()
+	configApp, err := config.Load()
+	if err != nil {
+		log.Fatal("coinScan transactions service could not start due to error in configApp initialization: ", err.Error())
+	}
 
 	//clients
-	infuraCli, _ := infura.New(log, configApp)
+	infuraCli, err := infura.New(log, configApp)
+	if err != nil {
+		log.Fatal("coinScan transactions service could not start due to error in infura client initialization: ", err.Error())
+	}
 
 	//service
-	ethSrv := ethereum.NewService(log, configApp, &infuraCli)
+	ethSrv, err := ethereum.NewService(log, configApp, &infuraCli)
+	if err != nil {
+		log.Fatal("coinScan transactions service could not start due to error in ethereum service initialization: ", err.Error())
+	}
 
 	//handler
 	ethHandler := handler.NewEth(log, configApp, &ethSrv)

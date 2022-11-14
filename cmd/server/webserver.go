@@ -1,16 +1,16 @@
 package server
 
 import (
-	"coinScan/cmd/server/handler"
+	"github.com/alexrondon89/coinscan-transactions/cmd/server/handler"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
+	"log"
 )
 
 type WebServer struct {
 	logger          *logrus.Logger
 	instance        *fiber.App
 	ethereumHandler *handler.EthereumHandler
-	coinGecoService interface{}
 }
 
 func NewInstance(logger *logrus.Logger, ethereumHandler *handler.EthereumHandler) *WebServer {
@@ -24,14 +24,6 @@ func NewInstance(logger *logrus.Logger, ethereumHandler *handler.EthereumHandler
 func (ws *WebServer) AddEthereumRoutes() {
 	ws.instance.Get("/lastTransactions", ws.ethereumHandler.HandlerLastTransactions)
 	ws.instance.Get("/transaction/:hash", ws.ethereumHandler.HandlerTransaction)
-
-	//ws.instance.Get("/blocksAmount", ws.ethereumHandler.HandlerBlockAmounts)
-}
-
-func (ws *WebServer) AddCoinGecoRoutes() {
-	ws.instance.Get("/coinPrices", func(c *fiber.Ctx) error {
-		return c.SendString("here will go coingeco service")
-	})
 }
 
 func (ws *WebServer) Start() {
@@ -39,7 +31,6 @@ func (ws *WebServer) Start() {
 
 	err := ws.instance.Listen(":3000")
 	if err != nil {
-		panic("server could not start...")
+		log.Fatal("coinScan transactions service could not start: ", err.Error())
 	}
-
 }

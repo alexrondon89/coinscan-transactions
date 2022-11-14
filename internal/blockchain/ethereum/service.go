@@ -1,13 +1,17 @@
 package ethereum
 
 import (
-	"coinScan/cmd/config"
-	"coinScan/internal/blockchain"
 	"context"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
-	"time"
+
+	"github.com/alexrondon89/coinscan-transactions/cmd/config"
+	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
+	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
+	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors/service"
 )
 
 type Service struct {
@@ -17,16 +21,21 @@ type Service struct {
 	cacheTransactions []blockchain.Transaction
 }
 
-func NewService(logger *logrus.Logger, config *config.Config, client blockchain.Client) Service {
+func NewService(logger *logrus.Logger, config *config.Config, client blockchain.Client) (Service, errors.Error) {
 	s := Service{
 		logger: logger,
 		client: client,
 		config: config,
 	}
 
-	s.cacheTransactions, _ = s.client.LastTransactions(context.Background(), s.config.Ethereum.Cache.NumberOfElements)
+	cacheTransactions, err := s.client.LastTransactions(context.Background(), s.config.Ethereum.Cache.NumberOfElements)
+	if err != nil {
+		return Service{}, errors.NewError(service.InitializationError, err)
+	}
+
+	s.cacheTransactions = cacheTransactions
 	s.updateCacheLastTransactions()
-	return s
+	return s, nil
 }
 
 func (s *Service) updateCacheLastTransactions() {
@@ -41,23 +50,28 @@ func (s *Service) updateCacheLastTransactions() {
 					s.cacheTransactions = lastTransactions
 					continue
 				}
-				s.logger.Error("error during cache updated")
+				s.logger.Error("problem refreshing cacheTransactions: " + err.Error())
 			}
 		}
 	}()
 }
 
-func (s *Service) GetLastTransactions(c *fiber.Ctx, n uint16) ([]blockchain.Transaction, error) {
+func (s *Service) GetLastTransactions(c *fiber.Ctx, n uint16) ([]blockchain.Transaction, errors.Error) {
 	trxs, err := s.client.LastTransactions(c.Context(), n)
 	if err != nil {
 		return nil, err
 	}
+
 	s.cacheTransactions = trxs
 	return s.cacheTransactions, nil
 }
 
-func (s *Service) GetTransaction(c *fiber.Ctx, hash string) (blockchain.Transaction, error) {
+func (s *Service) GetTransaction(c *fiber.Ctx, hash string) (blockchain.Transaction, errors.Error) {
 	hashType := common.HexToHash(hash)
-	trx, _ := s.client.FindTransaction(c.Context(), hashType)
+	trx, err := s.client.FindTransactionProcessed(c.Context(), hashType)
+	if err != nil {
+		return blockchain.Transaction{}, err
+	}
+
 	return trx, nil
 }

@@ -1,4 +1,4 @@
-module coinScan
+module github.com/alexrondon89/coinscan-transactions
 
 go 1.18
 
