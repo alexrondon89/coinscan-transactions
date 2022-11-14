@@ -5,19 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3eea0fe3-9eb2-48ee-b5b1-bd7e6b0c653b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/internal/platform/errors/client/types.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/platform/errors/error.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/internal/platform/errors/service/types.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/config/load.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/config/load.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/server/handler/errors.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/server/handler/ethereum.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/server/handler/ethereum.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cmd/server/webserver.go" beforeDir="false" afterPath="$PROJECT_DIR$/cmd/server/webserver.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/blockchain.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/blockchain.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/blockchain/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/blockchain/client.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/blockchain/ethereum/client/infura/client.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/blockchain/ethereum/client/infura/client.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/internal/blockchain/ethereum/service.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/blockchain/ethereum/service.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/makefile" beforeDir="false" afterPath="$PROJECT_DIR$/makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,10 +42,9 @@
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
     "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "WebServerToolWindowFactoryState": "false",
     "go.import.settings.migrated": "true",
-    "last_opened_file_path": "/Users/cristhian",
+    "last_opened_file_path": "/Users/cristhian/go/src/coinscan-transactions",
     "settings.editor.selected.configurable": "go.vgo"
   },
   "keyToStringList": {
