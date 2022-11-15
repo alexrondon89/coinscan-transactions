@@ -32,7 +32,7 @@ func main() {
 	}
 
 	//handler
-	ethHandler := handler.NewEth(log, configApp, &ethSrv)
+	ethHandler := handler.NewEth(log, configApp, ethSrv)
 
 	//server
 	fiberServer := server.NewInstance(log, &ethHandler)

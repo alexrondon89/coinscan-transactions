@@ -14,25 +14,21 @@ import (
 )
 
 type Service struct {
-	logger            *logrus.Logger
-	config            *config.Config
-	client            blockchain.Client
-	cacheTransactions []blockchain.Transaction
+	logger               *logrus.Logger
+	config               *config.Config
+	client               blockchain.Client
+	cacheTransactions    []blockchain.Transaction
+	numberOfTransactions uint16
 }
 
-func NewService(logger *logrus.Logger, config *config.Config, client blockchain.Client) (Service, errors.Error) {
-	s := Service{
-		logger: logger,
-		client: client,
-		config: config,
+func NewService(logger *logrus.Logger, config *config.Config, client blockchain.Client) (*Service, errors.Error) {
+	s := &Service{
+		logger:               logger,
+		client:               client,
+		config:               config,
+		numberOfTransactions: config.Ethereum.Cache.NumberOfElements,
 	}
 
-	cacheTransactions, err := s.client.LastTransactions(context.Background(), s.config.Ethereum.Cache.NumberOfElements)
-	if err != nil {
-		return Service{}, errors.NewError(errors.InitializationError, err)
-	}
-
-	s.cacheTransactions = cacheTransactions
 	s.updateCacheLastTransactions()
 	return s, nil
 }
@@ -43,9 +39,11 @@ func (s *Service) updateCacheLastTransactions() {
 		for {
 			select {
 			case <-ticker.C:
-				lastTransactions, err := s.client.LastTransactions(context.Background(), s.config.Ethereum.Cache.NumberOfElements)
+				lastTransactions, err := s.client.LastTransactions(context.Background(), s.numberOfTransactions)
+				s.logger.Info("amount: ", len(lastTransactions))
+
 				if err == nil {
-					s.logger.Info("cache updated with the last transactions")
+					s.logger.Info("new execution to update cache with the last transactions ")
 					s.cacheTransactions = lastTransactions
 					continue
 				}
@@ -56,12 +54,25 @@ func (s *Service) updateCacheLastTransactions() {
 }
 
 func (s *Service) GetLastTransactions(c *fiber.Ctx, n uint16) ([]blockchain.Transaction, errors.Error) {
-	trxs, err := s.client.LastTransactions(c.Context(), n)
-	if err != nil {
-		return nil, err
+	if n > s.config.Ethereum.Cache.MaxNumberOfElements {
+		s.logger.Error("error getting last transactions, max amount set exceeded")
+		return nil, errors.NewError(errors.MaxNumberOfTransactionsExceeded, nil)
 	}
 
-	s.cacheTransactions = trxs
+	if len(s.cacheTransactions) == 0 || s.numberOfTransactions != n {
+		cacheTransactions, err := s.client.LastTransactions(context.Background(), n)
+		if err != nil {
+			s.logger.Error("error recovering transactions using client")
+			return nil, errors.NewError(errors.GetTransactionsError, err)
+		}
+
+		s.logger.Info("cache updated with new amount of transactions: ", n, " transactions")
+		s.numberOfTransactions = n
+		s.cacheTransactions = cacheTransactions
+		return s.cacheTransactions, nil
+	}
+
+	s.logger.Info("last transactions recovered from cache")
 	return s.cacheTransactions, nil
 }
 

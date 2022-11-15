@@ -7,8 +7,9 @@
       "url": "https://mainnet.infura.io/v3/dd53d44a4ee6405bb1a73229d1490d3b"
     },
     "cache": {
-      "timeToUpdate": 3,
-      "numberOfElements": 1000
+      "timeToUpdate": 6,
+      "numberOfElements": 3,
+      "maxNumberOfElements": 1000
     }
   },
   "binanceSmartChain": {},

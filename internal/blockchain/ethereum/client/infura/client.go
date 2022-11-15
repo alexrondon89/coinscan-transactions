@@ -44,10 +44,11 @@ func (ic *Infura) LastTransactions(c context.Context, n uint16) ([]blockchain.Tr
 	var trxs []blockchain.Transaction
 
 	if nTrx := uint16(len(transactions)); n > nTrx { //todo improve searching the previous the last block to obtain the rest od transactions
-		transactions = transactions[:nTrx]
+		n = nTrx
+		transactions = transactions[:n]
 	}
 
-	for _, transaction := range transactions {
+	for _, transaction := range transactions[:n] {
 		trxMessage, err := transaction.AsMessage(types.LatestSignerForChainID(transaction.ChainId()), nil)
 		if err != nil {
 			ic.logger.Error("problem converting transaction as a message type: ", err.Error())

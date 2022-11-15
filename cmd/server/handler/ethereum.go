@@ -2,12 +2,14 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 
 	"github.com/alexrondon89/coinscan-transactions/cmd/config"
 	"github.com/alexrondon89/coinscan-transactions/internal"
+	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
 )
 
 type EthereumHandler struct {
@@ -25,10 +27,18 @@ func NewEth(logger *logrus.Logger, config *config.Config, ethereumService intern
 }
 
 func (eh *EthereumHandler) HandlerLastTransactions(c *fiber.Ctx) error {
-	trxList, err := eh.Service.GetLastTransactions(c, eh.config.Ethereum.Cache.NumberOfElements)
+	size := c.Query("size", strconv.Itoa(int(eh.config.Ethereum.Cache.NumberOfElements)))
+	sizeNumber, err := strconv.Atoi(size)
 	if err != nil {
-		return c.Status(err.StatusCode()).JSON(err.Type())
+		errToReturn := errors.NewError(errors.SizeError, err)
+		return c.Status(errToReturn.StatusCode()).JSON(errToReturn.Type())
 	}
+
+	trxList, errTrx := eh.Service.GetLastTransactions(c, uint16(sizeNumber))
+	if errTrx != nil {
+		return c.Status(errTrx.StatusCode()).JSON(errTrx.Type())
+	}
+
 	return c.Status(http.StatusOK).JSON(trxList)
 }
 

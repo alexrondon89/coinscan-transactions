@@ -19,6 +19,7 @@ type node struct {
 }
 
 type cache struct {
-	TimeToUpdate     uint16
-	NumberOfElements uint16
+	TimeToUpdate        uint16
+	NumberOfElements    uint16
+	MaxNumberOfElements uint16
 }
