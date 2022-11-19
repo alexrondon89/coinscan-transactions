@@ -19,65 +19,101 @@ type Client interface {
 
 // Transaction todo add more details to transaction
 type Transaction struct {
-	Block block `json:"block"`
-	Trx   trx   `json:"trx"`
-	Gas   gas   `json:"gas"`
+	Overview overview `json:"trx"`
+	Block    *block   `json:"block,omitempty"`
+	Values   *values  `json:"values,omitempty"`
+	Fee      *Fee     `json:"Fee,omitempty"`
 }
 
-type trx struct {
-	From      string     `json:"from"`
-	To        string     `json:"to"`
-	Value     *big.Float `json:"value"`
-	TimeStamp time.Time  `json:"timeStamp"`
-
-	TransactionFee  uint64     `json:"transactionFee"`
-	TransactionHash string     `json:"transactionHash"`
-	Cost            *big.Float `json:"cost"`
+type overview struct {
+	Pending bool   `json:"pending"`
+	From    string `json:"from"`
+	To      string `json:"to,omitempty"`
+	Hash    string `json:"transactionHash"`
 }
 
-type gas struct {
-	GasLimit  uint64   `json:"gasLimit"`
-	GasUsed   uint64   `json:"gasUsed"`
-	GasPrice  *big.Int `json:"gasPrice"`
-	GasFeeCap uint64   `json:"gasFeeCap"`
-	GasTipCap uint64   `json:"gasTipCap"`
+type values struct {
+	TransactionFee uint64     `json:"transactionFee"`
+	Value          *big.Float `json:"value"`
+}
+
+type Fee struct {
+	MaxFeePerGasOffered uint64 `json:"maxFeePerGasOffered"`
+	GasLimit            uint64 `json:"gasLimit"`
+	GasUsed             uint64 `json:"gasUsed"`
+	GasPrice            uint64 `json:"gasPrice"`
+	GasTipCap           uint64 `json:"gasTipCap"`
+	BaseFee             uint64 `json:"baseFee"`
 }
 
 type block struct {
-	Hash   string `json:"hash"`
-	Number uint64 `json:"number"`
+	Hash      string    `json:"hash"`
+	Number    uint64    `json:"number"`
+	TimeStamp time.Time `json:"timeStamp"`
 }
 
 func NewTransaction() Transaction {
 	return Transaction{}
 }
 
-func (t Transaction) BuildBlockSection(receipt *types.Receipt) Transaction {
-	t.Block = block{
-		Hash:   receipt.BlockHash.Hex(),
-		Number: receipt.BlockNumber.Uint64(),
+func (t Transaction) BuildOverview(trx types.Transaction, trxAsMessage types.Message, pending bool) Transaction {
+	t.Overview = overview{
+		Pending: pending,
+		From:    trxAsMessage.From().Hex(),
+		Hash:    trx.Hash().Hex(),
+	}
+
+	if to := trx.To(); to != nil {
+		t.Overview.To = to.Hex()
+	}
+
+	return t
+}
+
+func (t Transaction) BuildBlock(blockInfo *types.Header) Transaction {
+	t.Block = &block{
+		Hash:      blockInfo.Hash().Hex(),
+		Number:    blockInfo.Number.Uint64(),
+		TimeStamp: time.Unix(int64(blockInfo.Time), 0).UTC(),
 	}
 	return t
 }
 
-func (t Transaction) BuildGasSection(trxMessage types.Message, receipt *types.Receipt) Transaction {
-	t.Gas = gas{
-		GasLimit:  trxMessage.Gas(),
-		GasUsed:   receipt.GasUsed,
-		GasFeeCap: trxMessage.GasFeeCap().Uint64(),
-		GasTipCap: trxMessage.GasTipCap().Uint64(),
-		GasPrice:  trxMessage.GasPrice(),
+func (t Transaction) BuildFee(trx types.Transaction, receipt *types.Receipt, blockInfo *types.Header) Transaction {
+	t.Fee = &Fee{
+		MaxFeePerGasOffered: trx.GasFeeCap().Uint64(),          // https://ethereum.org/es/developers/docs/gas/#maxfee maximo pago ofrecido
+		GasLimit:            trx.Gas(),                         //https://ethereum.org/es/developers/docs/gas/#maxfee maximo gas a consumirse por operaciones
+		GasUsed:             receipt.GasUsed,                   // gas consumido por operaciones
+		GasTipCap:           trx.GasTipCap().Uint64(),          // maxima propina para el minero
+		BaseFee:             blockInfo.BaseFee.Uint64(),        // comision base por el bloque
+		GasPrice:            calculateGasPrice(trx, blockInfo), // precio por cada unidad de gas
 	}
-	return t
 
+	return t
 }
 
-func (t Transaction) BuildTrxSection(trxMessage types.Message, block types.Block) Transaction {
-	t.Trx = trx{
-		From:      trxMessage.From().Hex(),
-		To:        trxMessage.To().Hex(),
-		Value:     platform.ConvertToUnitDesired(trxMessage.Value(), params.Ether),
-		TimeStamp: time.Unix(int64(block.Time()), 0).UTC(),
+func (t Transaction) BuildValues(trx types.Transaction, receipt *types.Receipt, blockInfo *types.Header) Transaction {
+	t.Values = &values{
+		Value: platform.ConvertToUnitDesired(trx.Value(), params.Ether),
 	}
+
+	if t.Fee != nil {
+		t.Values.TransactionFee = t.Fee.GasPrice * receipt.GasUsed
+		return t
+	}
+
+	t.Values.TransactionFee = calculateGasPrice(trx, blockInfo) * receipt.GasUsed
 	return t
+}
+
+func calculateGasPrice(trx types.Transaction, blockInfo *types.Header) uint64 {
+	baseFee := blockInfo.BaseFee.Uint64()
+	gasTipCap := trx.GasTipCap().Uint64()
+	gasFeeCap := trx.GasFeeCap().Uint64()
+	price := baseFee + gasTipCap
+	if price < gasFeeCap {
+		return price
+	}
+
+	return gasFeeCap
 }

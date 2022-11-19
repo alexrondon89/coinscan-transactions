@@ -55,33 +55,40 @@ func (ic *Infura) LastTransactions(c context.Context, n uint16) ([]blockchain.Tr
 			return nil, errors.NewError(errors.TransactionAsMessageErr, err)
 		}
 
-		trx := blockchain.NewTransaction().BuildTrxSection(trxMessage, *lastBlock)
+		trx := blockchain.NewTransaction().BuildOverview(*transaction, trxMessage, false)
 		trxs = append(trxs, trx)
 	}
 	return trxs, nil
 }
 
 func (ic *Infura) FindTransactionProcessed(c context.Context, hash common.Hash) (blockchain.Transaction, errors.Error) {
+	transac, pending, err := ic.connection.TransactionByHash(c, hash)
+	if err != nil {
+		ic.logger.Error("problem getting transaction: ", err.Error())
+		return blockchain.Transaction{}, errors.NewError(errors.QueryTransactionErr, err)
+	}
+	trxAsMessage, err := transac.AsMessage(types.LatestSignerForChainID(transac.ChainId()), nil)
+
+	if pending {
+		return blockchain.NewTransaction().BuildOverview(*transac, trxAsMessage, pending), nil
+	}
+
 	receipt, err := ic.connection.TransactionReceipt(c, hash)
 	if err != nil {
 		ic.logger.Error("problem getting receipt for an processed transaction: ", err.Error())
 		return blockchain.Transaction{}, errors.NewError(errors.ReceiptErr, err)
 	}
 
-	block, err := ic.connection.BlockByHash(c, receipt.BlockHash)
+	block, err := ic.connection.HeaderByHash(c, receipt.BlockHash)
 	if err != nil {
 		ic.logger.Error("problem getting block by hash: ", err.Error())
 		return blockchain.Transaction{}, errors.NewError(errors.BlockErr, err)
 	}
 
-	transaction := block.Transaction(hash)
-	trxMessage, err := transaction.AsMessage(types.LatestSignerForChainID(transaction.ChainId()), nil)
-	if err != nil {
-		ic.logger.Error("problem converting transaction as a message type: ", err.Error())
-		return blockchain.Transaction{}, errors.NewError(errors.TransactionAsMessageErr, err)
-	}
-
-	return blockchain.NewTransaction().BuildTrxSection(trxMessage, *block).BuildGasSection(trxMessage, receipt).BuildBlockSection(receipt), nil
+	return blockchain.NewTransaction().BuildOverview(*transac, trxAsMessage, pending).
+		BuildBlock(block).
+		BuildFee(*transac, receipt, block).
+		BuildValues(*transac, receipt, block), nil
 }
 
 func (ic *Infura) Ping() {
