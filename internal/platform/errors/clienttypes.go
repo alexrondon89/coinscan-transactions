@@ -8,6 +8,7 @@ var (
 	BlockErr                = newClientErr("error getting block from blockchain", "0003CLIENT", http.StatusInternalServerError)
 	ReceiptErr              = newClientErr("receipt for transaction not exist or it is not processed yet", "0004CLIENT", http.StatusBadRequest)
 	TransactionAsMessageErr = newClientErr("error getting transaction as a message", "0005CLIENT", http.StatusInternalServerError)
+	ConversionUnitError     = newClientErr("error converting value to ethereum scale unit", "0006CLIENT", http.StatusInternalServerError)
 )
 
 func newClientErr(message, internalCode string, httpCode int) ErrorType {

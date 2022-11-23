@@ -2,12 +2,15 @@ package blockchain
 
 import (
 	"context"
+	"fmt"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"math"
 	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -21,7 +24,7 @@ type Client interface {
 type Transaction struct {
 	Overview overview `json:"trx"`
 	Block    *block   `json:"block,omitempty"`
-	Values   *values  `json:"values,omitempty"`
+	Receipt  *receipt `json:"receipt,omitempty"`
 	Fee      *Fee     `json:"Fee,omitempty"`
 }
 
@@ -32,24 +35,31 @@ type overview struct {
 	Hash    string `json:"transactionHash"`
 }
 
-type values struct {
-	TransactionFee uint64     `json:"transactionFee"`
-	Value          *big.Float `json:"value"`
+type receipt struct {
+	TransactionFee denomination `json:"transactionFee"`
+	Value          denomination `json:"value"`
+	Status         uint64       `json:"status"`
+	GasUsed        uint64       `json:"gasUsed"`
+	GasLimit       uint64       `json:"gasLimit"`
 }
 
 type Fee struct {
-	MaxFeePerGasOffered uint64 `json:"maxFeePerGasOffered"`
-	GasLimit            uint64 `json:"gasLimit"`
-	GasUsed             uint64 `json:"gasUsed"`
-	GasPrice            uint64 `json:"gasPrice"`
-	GasTipCap           uint64 `json:"gasTipCap"`
-	BaseFee             uint64 `json:"baseFee"`
+	MaxFeePerGasOffered denomination `json:"maxFeePerGasOffered"`
+	GasPrice            denomination `json:"gasPrice"`
+	GasTipCap           denomination `json:"gasTipCap"`
+	BaseFee             denomination `json:"baseFee"`
 }
 
 type block struct {
 	Hash      string    `json:"hash"`
 	Number    uint64    `json:"number"`
 	TimeStamp time.Time `json:"timeStamp"`
+}
+
+type denomination struct {
+	Wei  string
+	Gwei string
+	Eth  string
 }
 
 func NewTransaction() Transaction {
@@ -79,35 +89,92 @@ func (t Transaction) BuildBlock(blockInfo *types.Header) Transaction {
 	return t
 }
 
-func (t Transaction) BuildFee(trx types.Transaction, receipt *types.Receipt, blockInfo *types.Header) Transaction {
-	t.Fee = &Fee{
-		MaxFeePerGasOffered: trx.GasFeeCap().Uint64(),          // https://ethereum.org/es/developers/docs/gas/#maxfee maximo pago ofrecido
-		GasLimit:            trx.Gas(),                         //https://ethereum.org/es/developers/docs/gas/#maxfee maximo gas a consumirse por operaciones
-		GasUsed:             receipt.GasUsed,                   // gas consumido por operaciones
-		GasTipCap:           trx.GasTipCap().Uint64(),          // maxima propina para el minero
-		BaseFee:             blockInfo.BaseFee.Uint64(),        // comision base por el bloque
-		GasPrice:            calculateGasPrice(trx, blockInfo), // precio por cada unidad de gas
-	}
+func (t Transaction) BuildFee(trx types.Transaction, blockInfo *types.Header) Transaction {
+	t.Fee = &Fee{}
+	maxFeePerGasOffered := t.buildDenomination(trx.GasFeeCap()) // https://ethereum.org/es/developers/docs/gas/#maxfee maximo pago ofrecido
+	t.Fee.MaxFeePerGasOffered = maxFeePerGasOffered
+
+	gasTipCap := t.buildDenomination(trx.GasTipCap()) // maxima propina para el minero
+	t.Fee.GasTipCap = gasTipCap
+
+	baseFee := t.buildDenomination(blockInfo.BaseFee) // comision base por el bloque
+	t.Fee.BaseFee = baseFee
+
+	gasPrice := t.buildDenomination(t.calculateGasPrice(trx, blockInfo)) // precio por cada unidad de gas
+	t.Fee.GasPrice = gasPrice
 
 	return t
 }
 
-func (t Transaction) BuildValues(trx types.Transaction, receipt *types.Receipt, blockInfo *types.Header) Transaction {
-	t.Values = &values{
-		Value: platform.ConvertToUnitDesired(trx.Value(), params.Ether),
-	}
+func (t Transaction) BuildReceipt(trx types.Transaction, receiptOfTrx *types.Receipt, blockInfo *types.Header) Transaction {
+	t.Receipt = &receipt{}
+	value := t.buildDenomination(trx.Value())
+	t.Receipt.Value = value
 
-	if t.Fee != nil {
-		t.Values.TransactionFee = t.Fee.GasPrice * receipt.GasUsed
-		return t
-	}
+	gasPrice := t.calculateGasPrice(trx, blockInfo)
+	trxFee := gasPrice * receiptOfTrx.GasUsed
+	trxFeeAmount := t.buildDenomination(trxFee)
+	t.Receipt.TransactionFee = trxFeeAmount
 
-	t.Values.TransactionFee = calculateGasPrice(trx, blockInfo) * receipt.GasUsed
+	t.Receipt.Status = receiptOfTrx.Status
+	t.Receipt.GasUsed = receiptOfTrx.GasUsed
+	t.Receipt.GasLimit = trx.Gas()
+
 	return t
 }
 
-func calculateGasPrice(trx types.Transaction, blockInfo *types.Header) uint64 {
+func (t Transaction) buildDenomination(unit interface{}) denomination {
+	den := denomination{}
+
+	weiAmount, err := convertUnit(unit, params.Wei)
+	if err == nil {
+		weiAmountFloat, _ := weiAmount.Float64()
+		weiAmountString := setUnitFormat(weiAmountFloat, "0")
+		den.Wei = weiAmountString
+	}
+
+	gweiAmount, err := convertUnit(unit, params.GWei)
+	if err == nil {
+		gweiAmountFloat, _ := gweiAmount.Float64()
+		gweiAmountString := setUnitFormat(gweiAmountFloat, "9")
+		den.Gwei = gweiAmountString
+	}
+
+	ethAmount, err := convertUnit(unit, params.Ether)
+	if err == nil {
+		ethAmountFloat, _ := ethAmount.Float64()
+		ethAmountString := setUnitFormat(ethAmountFloat, "18")
+		den.Eth = ethAmountString
+	}
+
+	return den
+}
+
+func convertUnit(unit interface{}, exponent float64) (*big.Float, errors.Error) {
+	unitConverted, err := platform.ConvertToUnitDesired(unit, exponent)
+	if err != nil {
+		return nil, err
+	}
+
+	return unitConverted, nil
+}
+
+func setUnitFormat(unit float64, numberOfDecimals string) string {
+	format := "%." + numberOfDecimals + "f"
+	return fmt.Sprintf(format, unit)
+}
+
+func (t Transaction) calculateGasPrice(trx types.Transaction, blockInfo *types.Header) uint64 {
+	if t.Fee.GasPrice.Gwei != "" {
+		gasPriceInFloat, err := strconv.ParseFloat(t.Fee.GasPrice.Gwei, 64)
+		if err == nil {
+			priceInWei := gasPriceInFloat * math.Pow(10, 9)
+			return uint64(priceInWei)
+		}
+	}
+
 	baseFee := blockInfo.BaseFee.Uint64()
+	fmt.Println(baseFee)
 	gasTipCap := trx.GasTipCap().Uint64()
 	gasFeeCap := trx.GasFeeCap().Uint64()
 	price := baseFee + gasTipCap

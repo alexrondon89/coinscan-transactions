@@ -87,8 +87,8 @@ func (ic *Infura) FindTransactionProcessed(c context.Context, hash common.Hash) 
 
 	return blockchain.NewTransaction().BuildOverview(*transac, trxAsMessage, pending).
 		BuildBlock(block).
-		BuildFee(*transac, receipt, block).
-		BuildValues(*transac, receipt, block), nil
+		BuildFee(*transac, block).
+		BuildReceipt(*transac, receipt, block), nil
 }
 
 func (ic *Infura) Ping() {
