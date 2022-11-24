@@ -2,14 +2,13 @@ package ethereum
 
 import (
 	"context"
+	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 
 	"github.com/alexrondon89/coinscan-transactions/cmd/config"
-	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
 )
 
@@ -77,8 +76,7 @@ func (s *Service) GetLastTransactions(c *fiber.Ctx, n uint16) ([]blockchain.Tran
 }
 
 func (s *Service) GetTransaction(c *fiber.Ctx, hash string) (blockchain.Transaction, errors.Error) {
-	hashType := common.HexToHash(hash)
-	trx, err := s.client.FindTransactionProcessed(c.Context(), hashType)
+	trx, err := s.client.FindTransactionProcessed(c.Context(), hash)
 	if err != nil {
 		return blockchain.Transaction{}, err
 	}

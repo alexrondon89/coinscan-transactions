@@ -2,6 +2,7 @@ package infura
 
 import (
 	"context"
+	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -9,7 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/alexrondon89/coinscan-transactions/cmd/config"
-	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
 )
 
@@ -55,14 +55,15 @@ func (ic *Infura) LastTransactions(c context.Context, n uint16) ([]blockchain.Tr
 			return nil, errors.NewError(errors.TransactionAsMessageErr, err)
 		}
 
-		trx := blockchain.NewTransaction().BuildOverview(*transaction, trxMessage, false)
+		trx := NewTransaction().BuildOverview(*transaction, trxMessage, false).trx
 		trxs = append(trxs, trx)
 	}
 	return trxs, nil
 }
 
-func (ic *Infura) FindTransactionProcessed(c context.Context, hash common.Hash) (blockchain.Transaction, errors.Error) {
-	transac, pending, err := ic.connection.TransactionByHash(c, hash)
+func (ic *Infura) FindTransactionProcessed(c context.Context, hash string) (blockchain.Transaction, errors.Error) {
+	hashType := common.HexToHash(hash)
+	transac, pending, err := ic.connection.TransactionByHash(c, hashType)
 	if err != nil {
 		ic.logger.Error("problem getting transaction: ", err.Error())
 		return blockchain.Transaction{}, errors.NewError(errors.QueryTransactionErr, err)
@@ -70,10 +71,10 @@ func (ic *Infura) FindTransactionProcessed(c context.Context, hash common.Hash) 
 	trxAsMessage, err := transac.AsMessage(types.LatestSignerForChainID(transac.ChainId()), nil)
 
 	if pending {
-		return blockchain.NewTransaction().BuildOverview(*transac, trxAsMessage, pending), nil
+		return NewTransaction().BuildOverview(*transac, trxAsMessage, pending).trx, nil
 	}
 
-	receipt, err := ic.connection.TransactionReceipt(c, hash)
+	receipt, err := ic.connection.TransactionReceipt(c, hashType)
 	if err != nil {
 		ic.logger.Error("problem getting receipt for an processed transaction: ", err.Error())
 		return blockchain.Transaction{}, errors.NewError(errors.ReceiptErr, err)
@@ -85,10 +86,10 @@ func (ic *Infura) FindTransactionProcessed(c context.Context, hash common.Hash) 
 		return blockchain.Transaction{}, errors.NewError(errors.BlockErr, err)
 	}
 
-	return blockchain.NewTransaction().BuildOverview(*transac, trxAsMessage, pending).
+	return NewTransaction().BuildOverview(*transac, trxAsMessage, pending).
 		BuildBlock(block).
 		BuildFee(*transac, block).
-		BuildReceipt(*transac, receipt, block), nil
+		BuildReceipt(*transac, receipt, block).trx, nil
 }
 
 func (ic *Infura) Ping() {

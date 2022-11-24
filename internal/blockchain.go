@@ -1,9 +1,10 @@
 package internal
 
 import (
+	"github.com/gofiber/fiber/v2"
+
 	"github.com/alexrondon89/coinscan-transactions/internal/blockchain"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
-	"github.com/gofiber/fiber/v2"
 )
 
 type Service interface {
