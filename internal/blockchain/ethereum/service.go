@@ -38,8 +38,8 @@ func (s *Service) updateCacheLastTransactions() {
 		for {
 			select {
 			case <-ticker.C:
-				lastTransactions, err := s.client.LastTransactions(context.Background(), s.numberOfTransactions)
-				s.logger.Info("amount: ", len(lastTransactions))
+				lastTransactions, err := s.client.FindTransactions(context.Background(), s.numberOfTransactions, nil)
+				s.logger.Info("total amount of transactions: ", len(lastTransactions))
 
 				if err == nil {
 					s.logger.Info("new execution to update cache with the last transactions ")
@@ -59,7 +59,7 @@ func (s *Service) GetLastTransactions(c *fiber.Ctx, n uint16) ([]blockchain.Tran
 	}
 
 	if len(s.cacheTransactions) == 0 || s.numberOfTransactions != n {
-		cacheTransactions, err := s.client.LastTransactions(context.Background(), n)
+		lastTransactions, err := s.client.FindTransactions(context.Background(), n, nil)
 		if err != nil {
 			s.logger.Error("error recovering transactions using client")
 			return nil, errors.NewError(errors.GetTransactionsError, err)
@@ -67,16 +67,16 @@ func (s *Service) GetLastTransactions(c *fiber.Ctx, n uint16) ([]blockchain.Tran
 
 		s.logger.Info("cache updated with new amount of transactions: ", n, " transactions")
 		s.numberOfTransactions = n
-		s.cacheTransactions = cacheTransactions
+		s.cacheTransactions = lastTransactions
 		return s.cacheTransactions, nil
 	}
 
-	s.logger.Info("last transactions recovered from cache")
+	s.logger.Info("total amount of transactions recovered: ", len(s.cacheTransactions))
 	return s.cacheTransactions, nil
 }
 
 func (s *Service) GetTransaction(c *fiber.Ctx, hash string) (blockchain.Transaction, errors.Error) {
-	trx, err := s.client.FindTransactionProcessed(c.Context(), hash)
+	trx, err := s.client.FindTransaction(c.Context(), hash)
 	if err != nil {
 		return blockchain.Transaction{}, err
 	}

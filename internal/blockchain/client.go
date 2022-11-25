@@ -3,13 +3,13 @@ package blockchain
 import (
 	"context"
 	"github.com/alexrondon89/coinscan-transactions/internal/platform/errors"
+	"math/big"
 	"time"
 )
 
 type Client interface {
-	Ping()
-	LastTransactions(c context.Context, amountOfTransactions uint16) ([]Transaction, errors.Error)
-	FindTransactionProcessed(c context.Context, hash string) (Transaction, errors.Error)
+	FindTransactions(c context.Context, numberOfTransactions uint16, blockNumber *big.Int) ([]Transaction, errors.Error)
+	FindTransaction(c context.Context, hash string) (Transaction, errors.Error)
 }
 
 type Transaction struct {

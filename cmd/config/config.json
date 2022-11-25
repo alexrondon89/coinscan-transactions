@@ -7,8 +7,8 @@
       "url": "https://mainnet.infura.io/v3/dd53d44a4ee6405bb1a73229d1490d3b"
     },
     "cache": {
-      "timeToUpdate": 20,
-      "numberOfElements": 30,
+      "timeToUpdate": 40,
+      "numberOfElements": 500,
       "maxNumberOfElements": 1000
     }
   },
